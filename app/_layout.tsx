@@ -6,10 +6,13 @@ function RouteGuard({ children }: { children: React.ReactNode }) {
   const isAuthenticated = false;
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.replace("/auth");
-    }
-  });
+    setTimeout(() => {
+      if (!isAuthenticated) {
+        router.replace("/auth");
+      }
+    }, 0);
+  }, [isAuthenticated, router]);
+
   return <>{children}</>;
 }
 
