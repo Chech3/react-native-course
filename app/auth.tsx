@@ -1,3 +1,5 @@
+import { useAuth } from "@/lib/auth-context";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, View, StyleSheet } from "react-native";
 import { Text, TextInput, Button, useTheme } from "react-native-paper";
@@ -10,9 +12,13 @@ export default function AuthScreen() {
 
   const theme = useTheme();
 
+  const router = useRouter();
+
   const handleSwitchMode = () => {
     setIsAuthenticated(!isAuthenticated);
   };
+
+  const { signIn, signUp } = useAuth();
 
   const handleAuth = async () => {
     if (!email || !password) {
@@ -23,6 +29,22 @@ export default function AuthScreen() {
       setError("Password must be at least 6 characters long");
       return;
     }
+    setError(null);
+    if (isAuthenticated) {
+     const error = await signIn(email, password);
+     if (error) {
+       setError(error);
+       return
+     }
+      
+    } else {
+      const error = await signUp(email, password);
+      if (error) {
+        setError(error);
+        return;
+      }
+    }
+    router.replace("/");
   };
   return (
     <KeyboardAvoidingView
