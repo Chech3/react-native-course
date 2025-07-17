@@ -31,12 +31,11 @@ export default function AuthScreen() {
     }
     setError(null);
     if (isAuthenticated) {
-     const error = await signIn(email, password);
-     if (error) {
-       setError(error);
-       return
-     }
-      
+      const error = await signIn(email, password);
+      if (error) {
+        setError(error);
+        return;
+      }
     } else {
       const error = await signUp(email, password);
       if (error) {
@@ -83,8 +82,8 @@ export default function AuthScreen() {
         <Button mode="text" onPress={handleSwitchMode}>
           {" "}
           {isAuthenticated
-            ? "Already have an account? Sign in"
-            : "Don't have an account? Sign up"}
+            ? "Don't have an account? Sign up" 
+            : "Already have an account? Sign in"}
         </Button>
       </View>
     </KeyboardAvoidingView>
