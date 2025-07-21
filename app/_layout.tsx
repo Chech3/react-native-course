@@ -1,6 +1,10 @@
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
+import { useColorScheme } from "react-native";
+import { lightTheme, darkTheme } from '../lib/theme'; // Tus temas personalizados
+
+import { PaperProvider } from "react-native-paper";
 
 function RouteGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -21,15 +25,22 @@ function RouteGuard({ children }: { children: React.ReactNode }) {
 }
 
 export default function RootLayout() {
+
+  const colorScheme = useColorScheme(); 
+
+  const theme = colorScheme === "dark" ? darkTheme : lightTheme;
+
   return (
     <AuthProvider>
       <RouteGuard>
-        <Stack>
-          <Stack.Screen
-            name="(tabs)"
-            options={{ headerShown: false }}
-          ></Stack.Screen>
-        </Stack>
+        <PaperProvider theme={theme}>
+          <Stack>
+            <Stack.Screen
+              name="(tabs)"
+              options={{ headerShown: false }}
+            ></Stack.Screen>
+          </Stack>
+        </PaperProvider>
       </RouteGuard>
     </AuthProvider>
   );
