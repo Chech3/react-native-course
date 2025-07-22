@@ -1,3 +1,4 @@
+import ScreenWrapper from "@/components/screenWrapper";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -46,54 +47,56 @@ export default function AuthScreen() {
     router.replace("/");
   };
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <View style={styles.content}>
-        <Text style={styles.title}>
-          {isAuthenticated ? "Welcome Back" : "Create Account"}
-        </Text>
+    <ScreenWrapper>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
+      >
+        <View style={styles.content}>
+          <Text style={styles.title}>
+            {isAuthenticated ? "Welcome Back" : "Create Account"}
+          </Text>
 
-        <TextInput
-          label="Email"
-          autoCapitalize="none"
-          keyboardType="email-address"
-          placeholder="example@gmail.com"
-          mode="outlined"
-          style={styles.input}
-          onChangeText={setEmail}
-        />
+          <TextInput
+            label="Email"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            placeholder="example@gmail.com"
+            mode="outlined"
+            style={styles.input}
+            onChangeText={setEmail}
+          />
 
-        <TextInput
-          label="Password"
-          autoCapitalize="none"
-          secureTextEntry
-          mode="outlined"
-          style={styles.input}
-          onChangeText={setPassword}
-        />
-        {error && <Text style={{ color: theme.colors.error }}>{error}</Text>}
+          <TextInput
+            label="Password"
+            autoCapitalize="none"
+            secureTextEntry
+            mode="outlined"
+            style={styles.input}
+            onChangeText={setPassword}
+          />
+          {error && <Text style={{ color: theme.colors.error }}>{error}</Text>}
 
-        <Button style={styles.button} onPress={handleAuth} mode="contained">
-          {isAuthenticated ? "Welcome Back" : "Create Account"}
-        </Button>
+          <Button style={styles.button} onPress={handleAuth} mode="contained">
+            {isAuthenticated ? "Welcome Back" : "Create Account"}
+          </Button>
 
-        <Button mode="text" onPress={handleSwitchMode}>
-          {" "}
-          {isAuthenticated
-            ? "Don't have an account? Sign up" 
-            : "Already have an account? Sign in"}
-        </Button>
-      </View>
-    </KeyboardAvoidingView>
+          <Button mode="text" onPress={handleSwitchMode}>
+            {" "}
+            {isAuthenticated
+              ? "Don't have an account? Sign up"
+              : "Already have an account? Sign in"}
+          </Button>
+        </View>
+      </KeyboardAvoidingView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+   
   },
   content: {
     flex: 1,
