@@ -6,7 +6,7 @@ import { KeyboardAvoidingView, Platform, View, StyleSheet } from "react-native";
 import { Text, TextInput, Button, useTheme } from "react-native-paper";
 
 export default function AuthScreen() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
