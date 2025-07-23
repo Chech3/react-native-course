@@ -2,7 +2,13 @@ import { StyleSheet, View } from "react-native";
 import { useAuth } from "@/lib/auth-context";
 import { Button, useTheme, Text, Surface } from "react-native-paper";
 import ScreenWrapper from "@/components/screenWrapper";
-import { DATABASE_ID, HABITS_COLLECTION_ID, database } from "@/lib/appwrite";
+import {
+  DATABASE_ID,
+  HABITS_COLLECTION_ID,
+  RealTimeResponse,
+  client,
+  database,
+} from "@/lib/appwrite";
 import { Query } from "react-native-appwrite";
 import { Habit } from "@/types/database.type";
 import { useState, useEffect } from "react";
@@ -13,6 +19,7 @@ export default function Index() {
   const { colors } = useTheme();
   const [habit, setHabit] = useState<Habit[]>([]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const fetchHabits = async () => {
     try {
       const response = await database.listDocuments(
@@ -30,15 +37,34 @@ export default function Index() {
   };
 
   useEffect(() => {
-    if (!user) return;
+    if (user) {
 
-    fetchHabits();
-  }, [user]);
+      fetchHabits();
+      const channel = `databases.${DATABASE_ID}.collections.${HABITS_COLLECTION_ID}.documents`;
+  
+      const habitsSubscription = client.subscribe(
+        channel,
+        (response: RealTimeResponse) => {
+          if (response.events.includes("databases.*.collection.*.documents.*.create")) {
+            fetchHabits()
+          } else if (response.events.includes("databases.*.collection.*.documents.*.update")) {
+            fetchHabits()
+          } else  if (response.events.includes("databases.*.collection.*.documents.*.delete")) {
+            fetchHabits()
+          }
+        }
+      );
+      return () => {
+        habitsSubscription();
+      }
+    }
+
+  }, [user, fetchHabits]);
 
   return (
     <ScreenWrapper>
       <View style={[styles.container]}>
-        <View>
+        <View style={styles.header}>
           <Text variant="headlineSmall" style={styles.title}>
             Today&apos;s Habits
           </Text>
@@ -55,24 +81,41 @@ export default function Index() {
           <View>
             {habit?.map((h) => (
               <Surface style={styles.card} key={h.$id}>
-                <View style={styles.cardContent} >
-                  <Text style={[styles.cardTitle, {color: colors.primary}]}>{h.title}</Text>
-                  <Text style={[styles.cardDescription, {color: "gray"}]}>{h.description}</Text>
+                <View style={styles.cardContent}>
+                  <Text style={[styles.cardTitle, { color: colors.primary }]}>
+                    {h.title}
+                  </Text>
+                  <Text style={[styles.cardDescription, { color: "gray" }]}>
+                    {h.description}
+                  </Text>
 
                   <View style={styles.cardFooter}>
-                    <View style={[styles.streakBadge, {backgroundColor: colors.fire}]}>
+                    <View
+                      style={[
+                        styles.streakBadge,
+                        { backgroundColor: colors.fire },
+                      ]}
+                    >
                       <MaterialCommunityIcons
                         name="fire"
                         size={24}
                         color="orange"
                       />
-                      <Text style={[styles.streakText, {color: colors.scrim}]}>
+                      <Text
+                        style={[styles.streakText, { color: colors.scrim }]}
+                      >
                         {h.streak_count} day streak
                       </Text>
                     </View>
-                    <View style={[styles.frequencyBadge, {backgroundColor: colors.secondary}]}>
-                      <Text style={[styles.frequencyText, {color: colors.tertiary}]}>
-                        {h.frequency.charAt(0).toUpperCase() + h.frequency.slice(1)}
+                    <View
+                      style={[
+                        styles.frequencyBadge,
+                        { backgroundColor: colors.secondary },
+                      ]}
+                    >
+                      <Text style={{ color: colors.tertiary }}>
+                        {h.frequency.charAt(0).toUpperCase() +
+                          h.frequency.slice(1)}
                       </Text>
                     </View>
                   </View>
@@ -89,24 +132,25 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+    justifyContent: "center",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center", 
-    marginBottom: 24
+    alignItems: "center",
+    marginBottom: 24,
   },
   title: {
-    fontWeight: "bold"
+    fontWeight: "bold",
   },
   card: {
     marginBottom: 18,
     borderRadius: 18,
     shadowColor: "#000",
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 4
+    elevation: 4,
   },
   cardContent: {
     padding: 20,
@@ -123,7 +167,7 @@ const styles = StyleSheet.create({
   cardFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center"
+    alignItems: "center",
   },
   streakBadge: {
     flexDirection: "row",
@@ -134,7 +178,7 @@ const styles = StyleSheet.create({
   streakText: {
     marginLeft: 6,
     fontWeight: "bold",
-    fontSize: 16
+    fontSize: 16,
   },
   frequencyBadge: {
     flexDirection: "row",
@@ -144,8 +188,11 @@ const styles = StyleSheet.create({
   },
   frequencyText: {
     fontWeight: "bold",
-    fontSize: 16
-  }
-  
-  
+    fontSize: 14,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignContent: "center",
+  },
 });

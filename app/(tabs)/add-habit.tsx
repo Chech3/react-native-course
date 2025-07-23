@@ -53,12 +53,16 @@ export default function AddHabitScreen() {
       }
       setError("An unexpected error occurred while adding the habit.");
       return;
+    } finally {
+      setTitle("");
+      setDescription("");
     }
   };
 
   return (
     <ScreenWrapper>
       <View style={styles.container}>
+        <Text style={styles.title}>Add Habit</Text>
         <TextInput
           style={styles.input}
           label="Title"
@@ -103,6 +107,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+    justifyContent: "center",
+  },
+
+  title: {
+    fontSize: 24,
+    textAlign: "center",
   },
 
   input: { marginBottom: 16 },

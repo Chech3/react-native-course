@@ -13,6 +13,7 @@ export default function TabsLayout() {
           headerTitleStyle: { color: colors.tertiary },
           headerStyle: { backgroundColor: colors.background },
           headerShadowVisible: false,
+          headerShown: false,
           tabBarStyle: {
             backgroundColor: colors.surface,
             borderTopWidth: 0,
