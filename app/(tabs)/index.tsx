@@ -1,4 +1,4 @@
-import { StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { useAuth } from "@/lib/auth-context";
 import { Button, useTheme, Text, Surface } from "react-native-paper";
 import ScreenWrapper from "@/components/screenWrapper";
@@ -75,10 +75,10 @@ export default function Index() {
 
         {habit.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No habits found</Text>
+            <Text style={{color: colors.tertiary}}>No habits found</Text>
           </View>
         ) : (
-          <View>
+          <ScrollView showsVerticalScrollIndicator={false}  contentContainerStyle={{ paddingBottom: 80 }}>
             {habit?.map((h) => (
               <Surface style={styles.card} key={h.$id}>
                 <View style={styles.cardContent}>
@@ -122,7 +122,7 @@ export default function Index() {
                 </View>
               </Surface>
             ))}
-          </View>
+          </ScrollView>
         )}
       </View>
     </ScreenWrapper>
