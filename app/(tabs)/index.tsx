@@ -11,13 +11,16 @@ import {
 } from "@/lib/appwrite";
 import { Query } from "react-native-appwrite";
 import { Habit } from "@/types/database.type";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons/";
+import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 
 export default function Index() {
   const { signOut, user } = useAuth();
   const { colors } = useTheme();
   const [habit, setHabit] = useState<Habit[]>([]);
+
+  const swipeableRefs = useRef<{ [key: string]: any | null }>({});
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const fetchHabits = async () => {
@@ -36,32 +39,79 @@ export default function Index() {
     }
   };
 
-  useEffect(() => {
-    if (user) {
+  const renderLeftActions = () => (
+    <View style={styles.swipeActionLeft}>
+      <MaterialCommunityIcons
+        name="trash-can-outline"
+        size={32}
+        color={colors.tertiary}
+      />
+    </View>
+  );
+  const renderRightActions = () => (
+    <View style={styles.swipeActionRight}>
+      <MaterialCommunityIcons
+        name="check-circle-outline"
+        size={32}
+        color={colors.tertiary}
+      />
+    </View>
+  );
 
+  const swipeableOpen = (direction: string, id: string) => {
+    if (direction === "right") {
+      handleDeleteHabit(id);
+    }
+    swipeableRefs.current[id]?.close();
+  };
+
+  const handleDeleteHabit = async (id: string) => {
+    try {
+      await database.deleteDocument(DATABASE_ID, HABITS_COLLECTION_ID, id);
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(error);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    if (user) {
       fetchHabits();
       const channel = `databases.${DATABASE_ID}.collections.${HABITS_COLLECTION_ID}.documents`;
-  
+
       const habitsSubscription = client.subscribe(
         channel,
         (response: RealTimeResponse) => {
-          if (response.events.includes("databases.*.collection.*.documents.*.create")) {
-            fetchHabits()
-          } else if (response.events.includes("databases.*.collection.*.documents.*.update")) {
-            fetchHabits()
-          } else  if (response.events.includes("databases.*.collection.*.documents.*.delete")) {
-            fetchHabits()
+          if (
+            response.events.includes(
+              "databases.*.collection.*.documents.*.create"
+            )
+          ) {
+            fetchHabits();
+          } else if (
+            response.events.includes(
+              "databases.*.collection.*.documents.*.update"
+            )
+          ) {
+            fetchHabits();
+          } else if (
+            response.events.includes(
+              "databases.*.collection.*.documents.*.delete"
+            )
+          ) {
+            fetchHabits();
           }
         }
       );
       return () => {
         habitsSubscription();
-      }
+      };
     }
-
   }, [user, fetchHabits]);
 
-  return (
+  return (git
     <ScreenWrapper>
       <View style={[styles.container]}>
         <View style={styles.header}>
@@ -75,52 +125,74 @@ export default function Index() {
 
         {habit.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={{color: colors.tertiary}}>No habits found</Text>
+            <Text style={{ color: colors.tertiary }}>No habits found</Text>
           </View>
         ) : (
-          <ScrollView showsVerticalScrollIndicator={false}  contentContainerStyle={{ paddingBottom: 80 }}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 80 }}
+          >
             {habit?.map((h) => (
-              <Surface style={styles.card} key={h.$id}>
-                <View style={styles.cardContent}>
-                  <Text style={[styles.cardTitle, { color: colors.primary }]}>
-                    {h.title}
-                  </Text>
-                  <Text style={[styles.cardDescription, { color: "gray" }]}>
-                    {h.description}
-                  </Text>
+              <Swipeable
+                ref={(ref) => {
+                  swipeableRefs.current[h.$id] = ref;
+                }}
+                key={h.$id}
+                overshootLeft={false}
+                overshootRight={false}
+                renderLeftActions={renderLeftActions}
+                renderRightActions={renderRightActions}
+                onSwipeableOpen={(direction) => {
+                  swipeableOpen(direction, h.$id);
+                }}
+              >
+                <Surface
+                  style={[
+                    styles.card,
+                    { backgroundColor: colors.primaryContainer },
+                  ]}
+                >
+                  <View style={styles.cardContent}>
+                    <Text style={[styles.cardTitle, { color: colors.primary }]}>
+                      {h.title}
+                    </Text>
+                    <Text style={[styles.cardDescription, { color: "gray" }]}>
+                      {h.description}
+                    </Text>
 
-                  <View style={styles.cardFooter}>
-                    <View
-                      style={[
-                        styles.streakBadge,
-                        { backgroundColor: colors.fire },
-                      ]}
-                    >
-                      <MaterialCommunityIcons
-                        name="fire"
-                        size={24}
-                        color="orange"
-                      />
-                      <Text
-                        style={[styles.streakText, { color: colors.scrim }]}
+                    <View style={styles.cardFooter}>
+                      <View
+                        style={[
+                          styles.streakBadge,
+                          { backgroundColor: colors.fire },
+                        ]}
                       >
-                        {h.streak_count} day streak
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.frequencyBadge,
-                        { backgroundColor: colors.secondary },
-                      ]}
-                    >
-                      <Text style={{ color: colors.tertiary }}>
-                        {h.frequency.charAt(0).toUpperCase() +
-                          h.frequency.slice(1)}
-                      </Text>
+                        <MaterialCommunityIcons
+                          name="fire"
+                          size={24}
+                          color="orange"
+                        />
+                        <Text
+                          style={[styles.streakText, { color: colors.scrim }]}
+                        >
+                          {h.streak_count} day streak
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.frequencyBadge,
+                          { backgroundColor: colors.secondary },
+                        ]}
+                      >
+                        <Text style={{ color: colors.tertiary }}>
+                          {h.frequency.charAt(0).toUpperCase() +
+                            h.frequency.slice(1)}
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                </View>
-              </Surface>
+                </Surface>
+              </Swipeable>
             ))}
           </ScrollView>
         )}
@@ -194,5 +266,26 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignContent: "center",
+  },
+  swipeActionLeft: {
+    justifyContent: "center",
+    alignItems: "flex-start",
+    flex: 1,
+    backgroundColor: "#e53935",
+    borderRadius: 18,
+    marginBottom: 18,
+    marginTop: 2,
+    paddingLeft: 16,
+  },
+
+  swipeActionRight: {
+    justifyContent: "center",
+    alignItems: "flex-end",
+    flex: 1,
+    backgroundColor: "#4caf50",
+    borderRadius: 18,
+    marginBottom: 18,
+    marginTop: 2,
+    paddingRight: 16,
   },
 });

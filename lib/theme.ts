@@ -5,7 +5,8 @@ export const lightTheme = {
   colors: {
     ...MD3LightTheme.colors,
     primary: "#6200EE", // Color principal (botones, pestañas activas)
-    secondary: "#ede7f6",
+    primaryContainer: "#efefefff",
+    secondary: "#e4d8f4ff",
     background: "#f5f5f5", // Fondo de la app
     surface: "#ffffff", // Fondo de tarjetas, inputs, etc.
     tertiary: "#333333", // Color de texto
@@ -19,6 +20,7 @@ export const darkTheme = {
   colors: {
     ...MD3DarkTheme.colors,
     primary: "#BB86FC", // Morado claro para modo oscuro
+    primaryContainer: "#25232A",
     secondary: "#9746f9ff",
     background: "#121212", // Fondo oscuro
     surface: "#1E1E1E", // Superficies oscuras (tarjetas, etc.)

@@ -2,8 +2,8 @@ import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
 import { useColorScheme } from "react-native";
-import { lightTheme, darkTheme } from '../lib/theme'; // Tus temas personalizados
-
+import { lightTheme, darkTheme } from "../lib/theme"; // Tus temas personalizados
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PaperProvider } from "react-native-paper";
 
 function RouteGuard({ children }: { children: React.ReactNode }) {
@@ -25,23 +25,24 @@ function RouteGuard({ children }: { children: React.ReactNode }) {
 }
 
 export default function RootLayout() {
-
-  const colorScheme = useColorScheme(); 
+  const colorScheme = useColorScheme();
 
   const theme = colorScheme === "dark" ? darkTheme : lightTheme;
 
   return (
-    <AuthProvider>
-      <RouteGuard>
-        <PaperProvider theme={theme}>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen
-              name="(tabs)"
-              options={{ headerShown: false }}
-            ></Stack.Screen>
-          </Stack>
-        </PaperProvider>
-      </RouteGuard>
-    </AuthProvider>
+    <GestureHandlerRootView style={{flex: 1}}>
+      <AuthProvider>
+        <RouteGuard>
+          <PaperProvider theme={theme}>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen
+                name="(tabs)"
+                options={{ headerShown: false }}
+              ></Stack.Screen>
+            </Stack>
+          </PaperProvider>
+        </RouteGuard>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }
