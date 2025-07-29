@@ -3,13 +3,15 @@ import { useAuth } from "@/lib/auth-context";
 import { Button, useTheme, Text, Surface } from "react-native-paper";
 import ScreenWrapper from "@/components/screenWrapper";
 import {
+  COMPLETIONS_COLLECTION_ID,
   DATABASE_ID,
   HABITS_COLLECTION_ID,
   RealTimeResponse,
+  channel,
   client,
   database,
 } from "@/lib/appwrite";
-import { Query } from "react-native-appwrite";
+import { ID, Query } from "react-native-appwrite";
 import { Habit } from "@/types/database.type";
 import { useState, useEffect, useRef } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons/";
@@ -21,23 +23,6 @@ export default function Index() {
   const [habit, setHabit] = useState<Habit[]>([]);
 
   const swipeableRefs = useRef<{ [key: string]: any | null }>({});
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const fetchHabits = async () => {
-    try {
-      const response = await database.listDocuments(
-        DATABASE_ID,
-        HABITS_COLLECTION_ID,
-        [Query.equal("user_id", user!.$id)]
-      );
-      setHabit(response.documents as Habit[]);
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error("Error fetching habits:", error.message);
-        return;
-      }
-    }
-  };
 
   const renderLeftActions = () => (
     <View style={styles.swipeActionLeft}>
@@ -61,7 +46,10 @@ export default function Index() {
   const swipeableOpen = (direction: string, id: string) => {
     if (direction === "right") {
       handleDeleteHabit(id);
+    } else if (direction === "left") {
+      handleCompleteHabit(id);
     }
+
     swipeableRefs.current[id]?.close();
   };
 
@@ -75,43 +63,71 @@ export default function Index() {
     }
   };
 
-  useEffect(() => {
-    if (!user) return;
-    if (user) {
-      fetchHabits();
-      const channel = `databases.${DATABASE_ID}.collections.${HABITS_COLLECTION_ID}.documents`;
-
-      const habitsSubscription = client.subscribe(
-        channel,
-        (response: RealTimeResponse) => {
-          if (
-            response.events.includes(
-              "databases.*.collection.*.documents.*.create"
-            )
-          ) {
-            fetchHabits();
-          } else if (
-            response.events.includes(
-              "databases.*.collection.*.documents.*.update"
-            )
-          ) {
-            fetchHabits();
-          } else if (
-            response.events.includes(
-              "databases.*.collection.*.documents.*.delete"
-            )
-          ) {
-            fetchHabits();
-          }
+  const handleCompleteHabit = async (id: string) => {
+    try {
+      const currentDate = new Date().toISOString();
+      await database.createDocument(
+        DATABASE_ID,
+        COMPLETIONS_COLLECTION_ID,
+        ID.unique(),
+        {
+          habit_id: id,
+          user_id: user?.$id,
+          completed_at: currentDate,
         }
       );
-      return () => {
-        habitsSubscription();
-      };
-    }
-  }, [user, fetchHabits]);
 
-  return (git
+      const habits = habit?.find((h) => h.$id === id);
+      if (!habits) return;
+
+      await database.updateDocument(DATABASE_ID, HABITS_COLLECTION_ID, id, {
+        streak_count: habits.streak_count + 1,
+        last_completed: currentDate,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(error);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchHabits = async () => {
+      if (!user || !user.$id) return;
+      try {
+        const response = await database.listDocuments(
+          DATABASE_ID,
+          HABITS_COLLECTION_ID,
+          [Query.equal("user_id", user?.$id ?? "")]
+        );
+        setHabit(response.documents as Habit[]);
+      } catch (error) {
+        if (error instanceof Error) {
+          console.error("Error fetching habits:", error.message);
+          return;
+        }
+      }
+    };
+    const unsubscribe = client.subscribe(
+      channel,
+      (response: RealTimeResponse) => {
+        const isRelevant = response.events.some((event) =>
+          event.includes("databases.*.collections.*.documents.*")
+        );
+
+        if (isRelevant) {
+          fetchHabits();
+        }
+      }
+    );
+    fetchHabits();
+    return () => {
+      unsubscribe();
+    };
+  }, [user]);
+
+  return (
     <ScreenWrapper>
       <View style={[styles.container]}>
         <View style={styles.header}>
