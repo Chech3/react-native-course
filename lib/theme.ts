@@ -26,6 +26,6 @@ export const darkTheme = {
     surface: "#1E1E1E", // Superficies oscuras (tarjetas, etc.)
     tertiary: "#E0E0E0", // Texto claro
     fire: "#ae8e59ff",
-    scrim: "#724907ff",
+    scrim: "#ffffffff",
   },
 };

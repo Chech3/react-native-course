@@ -11,7 +11,8 @@ export const client = new Client()
   export const DATABASE_ID = process.env.EXPO_PUBLIC_DB_ID!;
   export const HABITS_COLLECTION_ID = process.env.EXPO_PUBLIC_HABITS_COLLECTION_ID!;
   export const COMPLETIONS_COLLECTION_ID = process.env.EXPO_PUBLIC_HABITS_COMPLETIONS!;
-  export const channel = `databases.${DATABASE_ID}.collections.${HABITS_COLLECTION_ID}.documents`;
+  export const habitChannel = `databases.${DATABASE_ID}.collections.${HABITS_COLLECTION_ID}.documents`;
+  export const completeChannel = `databases.${DATABASE_ID}.collections.${COMPLETIONS_COLLECTION_ID}.documents`;
 export interface RealTimeResponse {
   events: string[],
   payload: any

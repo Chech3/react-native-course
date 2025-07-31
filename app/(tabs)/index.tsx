@@ -7,12 +7,13 @@ import {
   DATABASE_ID,
   HABITS_COLLECTION_ID,
   RealTimeResponse,
-  channel,
+  habitChannel,
+  completeChannel,
   client,
   database,
 } from "@/lib/appwrite";
 import { ID, Query } from "react-native-appwrite";
-import { Habit } from "@/types/database.type";
+import { Habit, HabitCompletion } from "@/types/database.type";
 import { useState, useEffect, useRef } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons/";
 import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable";
@@ -21,10 +22,14 @@ export default function Index() {
   const { signOut, user } = useAuth();
   const { colors } = useTheme();
   const [habit, setHabit] = useState<Habit[]>([]);
+  const [completedHabits, setCompletedHabits] = useState<string[]>();
+
+  const isHabitCompleted = (habitId: string) =>
+    completedHabits?.includes(habitId);
 
   const swipeableRefs = useRef<{ [key: string]: any | null }>({});
 
-  const renderLeftActions = () => (
+  const renderLeftAction = () => (
     <View style={styles.swipeActionLeft}>
       <MaterialCommunityIcons
         name="trash-can-outline"
@@ -33,13 +38,17 @@ export default function Index() {
       />
     </View>
   );
-  const renderRightActions = () => (
+  const renderRightAction = (habitId: string) => (
     <View style={styles.swipeActionRight}>
-      <MaterialCommunityIcons
-        name="check-circle-outline"
-        size={32}
-        color={colors.tertiary}
-      />
+      {isHabitCompleted(habitId) ? (
+        <Text style={{color: colors.tertiary}}>Completed!</Text>
+      ) : (
+        <MaterialCommunityIcons
+          name="check-circle-outline"
+          size={32}
+          color={colors.tertiary}
+        />
+      )}
     </View>
   );
 
@@ -64,6 +73,7 @@ export default function Index() {
   };
 
   const handleCompleteHabit = async (id: string) => {
+    if (!user || completedHabits?.includes(id)) return;
     try {
       const currentDate = new Date().toISOString();
       await database.createDocument(
@@ -109,8 +119,8 @@ export default function Index() {
         }
       }
     };
-    const unsubscribe = client.subscribe(
-      channel,
+    const unsubscribeHabit = client.subscribe(
+      habitChannel,
       (response: RealTimeResponse) => {
         const isRelevant = response.events.some((event) =>
           event.includes("databases.*.collections.*.documents.*")
@@ -121,9 +131,44 @@ export default function Index() {
         }
       }
     );
+
+    const unsubscribeComplete = client.subscribe(
+      completeChannel,
+      (response: RealTimeResponse) => {
+        const isRelevant = response.events.some((event) =>
+          event.includes("databases.*.collections.*.documents.*")
+        );
+
+        if (isRelevant) {
+          fetchTodayCompletions();
+        }
+      }
+    );
+
+    const fetchTodayCompletions = async () => {
+      try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const response = await database.listDocuments(
+          DATABASE_ID,
+          COMPLETIONS_COLLECTION_ID,
+          [
+            Query.equal("user_id", user?.$id ?? ""),
+            Query.greaterThanEqual("completed_at", today.toISOString()),
+          ]
+        );
+        const completions = response.documents as HabitCompletion[];
+        setCompletedHabits(completions.map((c) => c.habit_id));
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
     fetchHabits();
+    fetchTodayCompletions();
     return () => {
-      unsubscribe();
+      unsubscribeHabit();
+      unsubscribeComplete();
     };
   }, [user]);
 
@@ -156,8 +201,8 @@ export default function Index() {
                 key={h.$id}
                 overshootLeft={false}
                 overshootRight={false}
-                renderLeftActions={renderLeftActions}
-                renderRightActions={renderRightActions}
+                renderLeftActions={renderLeftAction}
+                renderRightActions={() => renderRightAction(h.$id)}
                 onSwipeableOpen={(direction) => {
                   swipeableOpen(direction, h.$id);
                 }}
@@ -165,6 +210,7 @@ export default function Index() {
                 <Surface
                   style={[
                     styles.card,
+                    isHabitCompleted(h.$id) && styles.cardComplete,
                     { backgroundColor: colors.primaryContainer },
                   ]}
                 >
@@ -239,6 +285,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 4,
+  },
+  cardComplete: {
+    opacity: 0.4,
   },
   cardContent: {
     padding: 20,
