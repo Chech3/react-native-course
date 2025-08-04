@@ -5,7 +5,7 @@ export const lightTheme = {
   colors: {
     ...MD3LightTheme.colors,
     primary: "#6200EE", // Color principal (botones, pestañas activas)
-    primaryContainer: "#efefefff",
+    primaryContainer: "white",
     secondary: "#e4d8f4ff",
     background: "#f5f5f5", // Fondo de la app
     surface: "#ffffff", // Fondo de tarjetas, inputs, etc.

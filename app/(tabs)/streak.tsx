@@ -6,9 +6,11 @@ import {
   database,
   HABITS_COLLECTION_ID,
   RealTimeResponse,
+  habitChannel,
+  completeChannel,
 } from "@/lib/appwrite";
 import { useAuth } from "@/lib/auth-context";
-import { Habit, HabitCompletion } from "@/types/database.type";
+import { Habit, HabitCompletion, StreakData } from "@/types/database.type";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Query } from "react-native-appwrite";
@@ -20,91 +22,6 @@ export default function StreaksScreen() {
   const [completedHabits, setCompletedHabits] = useState<HabitCompletion[]>([]);
   const { user } = useAuth();
   const { colors } = useTheme();
-
-  useEffect(() => {
-    if (user) {
-      const habitsChannel = `databases.${DATABASE_ID}.collections.${HABITS_COLLECTION_ID}.documents`;
-      const habitsSubscription = client.subscribe(
-        habitsChannel,
-        (response: RealTimeResponse) => {
-          if (
-            response.events.includes(
-              "databases.*.collections.*.documents.*.create"
-            )
-          ) {
-            fetchHabits();
-          } else if (
-            response.events.includes(
-              "databases.*.collections.*.documents.*.update"
-            )
-          ) {
-            fetchHabits();
-          } else if (
-            response.events.includes(
-              "databases.*.collections.*.documents.*.delete"
-            )
-          ) {
-            fetchHabits();
-          }
-        }
-      );
-
-      const completionsChannel = `databases.${DATABASE_ID}.collections.${COMPLETIONS_COLLECTION_ID}.documents`;
-      const completionsSubscription = client.subscribe(
-        completionsChannel,
-        (response: RealTimeResponse) => {
-          if (
-            response.events.includes(
-              "databases.*.collections.*.documents.*.create"
-            )
-          ) {
-            fetchCompletions();
-          }
-        }
-      );
-
-      fetchHabits();
-      fetchCompletions();
-
-      return () => {
-        habitsSubscription();
-        completionsSubscription();
-      };
-    }
-  }, [user]);
-
-  const fetchHabits = async () => {
-    try {
-      const response = await database.listDocuments(
-        DATABASE_ID,
-        HABITS_COLLECTION_ID,
-        [Query.equal("user_id", user?.$id ?? "")]
-      );
-      setHabits(response.documents as Habit[]);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const fetchCompletions = async () => {
-    try {
-      const response = await database.listDocuments(
-        DATABASE_ID,
-        COMPLETIONS_COLLECTION_ID,
-        [Query.equal("user_id", user?.$id ?? "")]
-      );
-      const completions = response.documents as HabitCompletion[];
-      setCompletedHabits(completions);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  interface StreakData {
-    streak: number;
-    bestStreak: number;
-    total: number;
-  }
 
   const getStreakData = (habitId: string): StreakData => {
     const habitCompletions = completedHabits
@@ -158,14 +75,78 @@ export default function StreaksScreen() {
   const rankedHabits = habitStreaks.sort((a, b) => b.bestStreak - a.bestStreak);
 
   const badgeStyles = [styles.badge1, styles.badge2, styles.badge3];
+
+  useEffect(() => {
+    const fetchHabits = async () => {
+      try {
+        const response = await database.listDocuments(
+          DATABASE_ID,
+          HABITS_COLLECTION_ID,
+          [Query.equal("user_id", user?.$id ?? "")]
+        );
+        setHabits(response.documents as Habit[]);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    const fetchCompletions = async () => {
+      try {
+        const response = await database.listDocuments(
+          DATABASE_ID,
+          COMPLETIONS_COLLECTION_ID,
+          [Query.equal("user_id", user?.$id ?? "")]
+        );
+        const completions = response.documents as HabitCompletion[];
+        setCompletedHabits(completions);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    if (user) {
+      const habitsSubscription = client.subscribe(
+        habitChannel,
+        (response: RealTimeResponse) => {
+          const isRelevant = response.events.some((event) => {
+            event.includes("databases.*.collections.*.documents.*");
+          });
+          if (isRelevant) {
+            fetchHabits();
+          }
+        }
+      );
+
+      const completionsSubscription = client.subscribe(
+        completeChannel,
+        (response: RealTimeResponse) => {
+          if (
+            response.events.includes(
+              "databases.*.collections.*.documents.*.create"
+            )
+          ) {
+            fetchCompletions();
+          }
+        }
+      );
+
+      fetchHabits();
+      fetchCompletions();
+
+      return () => {
+        habitsSubscription();
+        completionsSubscription();
+      };
+    }
+  }, [user]);
+
   return (
     <ScreenWrapper>
-      <View style={[styles.container, { color: colors.primary }]}>
+      <View style={[styles.container]}>
         <Text
           style={[styles.title, { color: colors.tertiary }]}
           variant="headlineSmall"
         >
-          {" "}
           Habit Streaks
         </Text>
 
@@ -176,8 +157,7 @@ export default function StreaksScreen() {
               { backgroundColor: colors.surface },
             ]}
           >
-            {" "}
-            <Text style={styles.rankingTitle}> 🏅 Top Streaks</Text>{" "}
+            <Text style={styles.rankingTitle}> 🏅 Top Streaks</Text>
             {rankedHabits.slice(0, 3).map((item, key) => (
               <View key={key} style={styles.rankingRow}>
                 <View style={[styles.rankingBadge, badgeStyles[key]]}>
@@ -198,19 +178,22 @@ export default function StreaksScreen() {
           <ScrollView
             showsVerticalScrollIndicator={false}
             style={styles.container}
+            contentContainerStyle={{ paddingBottom: 80 }}
           >
             {rankedHabits.map(({ habit, streak, bestStreak, total }, key) => (
               <Card
                 key={key}
-                style={[styles.card, key === 0 && styles.firstCard]}
+                style={[
+                  styles.card,
+                  key === 0 && styles.firstCard,
+                  { backgroundColor: colors.primaryContainer },
+                ]}
               >
                 <Card.Content>
                   <Text variant="titleMedium" style={styles.habitTitle}>
-                    {" "}
                     {habit.title}
                   </Text>
                   <Text style={styles.habitDescription}>
-                    {" "}
                     {habit.description}
                   </Text>
                   <View style={styles.statsRow}>
@@ -361,7 +344,6 @@ const styles = StyleSheet.create({
   rankingHabit: {
     flex: 1,
     fontSize: 15,
-    color: "#333",
     fontWeight: "600",
   },
   rankingStreak: {

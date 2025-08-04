@@ -41,7 +41,7 @@ export default function Index() {
   const renderRightAction = (habitId: string) => (
     <View style={styles.swipeActionRight}>
       {isHabitCompleted(habitId) ? (
-        <Text style={{color: colors.tertiary}}>Completed!</Text>
+        <Text style={{ color: colors.tertiary }}>Completed!</Text>
       ) : (
         <MaterialCommunityIcons
           name="check-circle-outline"
@@ -280,11 +280,10 @@ const styles = StyleSheet.create({
   card: {
     marginBottom: 18,
     borderRadius: 18,
-    shadowColor: "#000",
+    elevation: 3,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 4,
   },
   cardComplete: {
     opacity: 0.4,
